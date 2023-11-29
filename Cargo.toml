@@ -2,8 +2,9 @@
 name = "img2epub"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+authors = ["Takumi Mori"]
+description = "Convert images to EPUB"
 
 [dependencies]
 chrono = "0.4.31"
