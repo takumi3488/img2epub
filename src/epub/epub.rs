@@ -261,7 +261,7 @@ pub fn zip_epub(dir: &str, out: &str) -> Result<(), Box<dyn std::error::Error>> 
     Command::new("sh")
         .arg("-c")
         .arg(format!(
-            "cd {} && zip -r2 ../{} * -x mimetype -x .*",
+            "cd {} && zip -r9 ../{} * -x mimetype -x .*",
             epub_dir, out
         ))
         .output()?;
