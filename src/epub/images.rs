@@ -20,22 +20,22 @@ impl Image {
 pub fn sort_image_files(dir: &str) -> Vec<Image> {
     let target_files = glob(format!("{}/*", dir).as_str()).unwrap();
     let re =
-        Regex::new(format!(r"{}/\D*(\d{{1,4}})\.(jpg|png|webp)$", dir.replace("./", "")).as_str())
+        Regex::new(format!(r"{}/(\D*|.*\D)(\d{{1,4}})\.(jpg|png|webp)$", dir.replace("./", "")).as_str())
             .unwrap();
     let mut sorted_files = target_files.map(|x| x.unwrap()).collect::<Vec<_>>();
     sorted_files.sort_by(|a, b| {
         let a = re
             .captures(a.to_str().unwrap())
-            .unwrap()
-            .get(1)
+            .expect("invalid file name")
+            .get(2)
             .unwrap()
             .as_str()
             .parse::<u32>()
             .unwrap();
         let b = re
             .captures(b.to_str().unwrap())
-            .unwrap()
-            .get(1)
+            .expect("invalid file name")
+            .get(2)
             .unwrap()
             .as_str()
             .parse::<u32>()
@@ -51,14 +51,14 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
                 "{:04}.{}",
                 re.captures(x.to_str().unwrap())
                     .unwrap()
-                    .get(1)
+                    .get(2)
                     .unwrap()
                     .as_str()
                     .parse::<u32>()
                     .unwrap(),
                 re.captures(x.to_str().unwrap())
                     .unwrap()
-                    .get(2)
+                    .get(3)
                     .unwrap()
                     .as_str()
             ),
@@ -66,7 +66,7 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
                 "part{}",
                 re.captures(x.to_str().unwrap())
                     .unwrap()
-                    .get(1)
+                    .get(2)
                     .unwrap()
                     .as_str()
                     .parse::<u32>()
