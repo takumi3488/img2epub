@@ -9,4 +9,7 @@ tasks:
       - cargo build --release
       - ./target/release/img2epub test_title ./images test.epub RTL
       - java -jar epubcheck/epubcheck.jar test.epub
-      - open test.epub
+      - task: clean
+  clean:
+    cmds:
+      - rm -rf ./test.epub ./epub
