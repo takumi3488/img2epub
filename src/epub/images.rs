@@ -22,7 +22,10 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
     let re =
         Regex::new(format!(r"{}/(\D*|.*\D)(\d{{1,4}})\.(jpg|png|webp)$", dir.replace("./", "")).as_str())
             .unwrap();
-    let mut sorted_files = target_files.map(|x| x.unwrap()).collect::<Vec<_>>();
+    let mut sorted_files = target_files
+        .map(|x| x.unwrap())
+        .filter(|x| re.is_match(x.to_str().unwrap()))
+        .collect::<Vec<_>>();
     sorted_files.sort_by(|a, b| {
         let a = re
             .captures(a.to_str().unwrap())
