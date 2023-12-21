@@ -252,15 +252,22 @@ pub fn zip_epub(dir: &str, out: &str) -> Result<(), Box<dyn std::error::Error>> 
 
     let current_dir = env::current_dir()?;
     let epub_dir = format!("{}/{}", current_dir.to_str().unwrap(), dir);
+
+    let out_path = if out.starts_with("/") {
+        out.to_string()
+    } else {
+        format!("../{}", out)
+    };
+
     Command::new("sh")
         .arg("-c")
-        .arg(format!("cd {} && zip -X0 ../{} mimetype", epub_dir, out))
+        .arg(format!("cd {} && zip -X0 {} mimetype", epub_dir, out_path))
         .output()?;
     Command::new("sh")
         .arg("-c")
         .arg(format!(
-            "cd {} && zip -r9 ../{} * -x mimetype -x .*",
-            epub_dir, out
+            "cd {} && zip -r9 {} * -x mimetype -x .*",
+            epub_dir, out_path
         ))
         .output()?;
 
