@@ -17,8 +17,6 @@ pub fn rm_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub fn initialize_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
-    rm_directory(dir)?;
-
     // Create the directory and subdirectories
     create_dir(dir)?;
     create_dir(format!("{}/OEBPS", dir))?;
