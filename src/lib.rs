@@ -1,11 +1,15 @@
 mod epub;
 
+use std::{fs::File, io::BufReader, path::Path};
+
 use chrono::Utc;
+pub use epub::epub::get_metadata;
 use epub::epub::{
     create_nav_file, create_opf_file, create_part_files, initialize_directory, rm_directory,
     zip_epub,
 };
 use epub::images::{padding_image_file, sort_image_files};
+use serde_json::from_reader;
 use uuid::Uuid;
 
 pub enum Direction {
@@ -14,14 +18,16 @@ pub enum Direction {
 }
 
 pub fn img2epub(
-    title: &str,
     image_dir: &str,
     out: &str,
-    direction: Direction,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let is_rtl = match direction {
-        Direction::LTR => false,
-        Direction::RTL => true,
+    // Create metadata
+    let json_path = format!("{}/metadata.json", image_dir);
+    let metadata = if Path::new(&json_path).exists() {
+        let buf = BufReader::new(File::open(&json_path)?);
+        from_reader(buf).expect("metadata.json is invalid")
+    } else {
+        panic!("metadata.json is not found");
     };
 
     let epub_dir = format!("./epub-{}", Uuid::new_v4().to_string());
@@ -56,15 +62,14 @@ pub fn img2epub(
     create_opf_file(
         &epub_dir,
         &format!("urn:uuid:{}", Uuid::new_v4().to_string()),
-        title,
         "ja-JP",
         Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string().as_str(),
         &sorted_files,
         max_width,
         max_height,
-        is_rtl,
+        &metadata
     )?;
-    create_part_files(&epub_dir, title, &sorted_files, max_width, max_height)?;
+    create_part_files(&epub_dir, &metadata.title, &sorted_files, max_width, max_height)?;
 
     // Zip the directory
     zip_epub(&epub_dir, out)?;

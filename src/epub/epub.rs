@@ -1,11 +1,18 @@
 use super::images::Image;
 use std::{
-    env,
-    fs::{create_dir, remove_dir_all, write},
-    path::Path,
-    process::Command,
-    result::Result,
+    env, fs::{create_dir, remove_dir_all, write}, path::Path, process::Command, result::Result
 };
+use epub::doc::EpubDoc;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct Metadata {
+    pub title: String,
+    pub creator: Option<String>,
+    pub publisher: Option<String>,
+    pub date: Option<String>,
+    pub is_rtl: bool,
+}
 
 pub fn rm_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Remove the directory if it exists
@@ -93,13 +100,12 @@ a.app-amzn-magnify {display: block; width: 100%; height: 100%;}"#,
 pub fn create_opf_file(
     dir: &str,
     identifier: &str,
-    title: &str,
     language: &str,
     modified: &str,
     images_files: &Vec<Image>,
     max_width: u32,
     max_height: u32,
-    is_rtl: bool,
+    metadata: &Metadata
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Create the content.opf file
     write(
@@ -110,7 +116,7 @@ pub fn create_opf_file(
     <metadata xmlns:opf="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/">
         <dc:identifier id="pub-id">{}</dc:identifier>
         <dc:title>{}</dc:title>
-        <dc:language>{}</dc:language>
+        <dc:language>{}</dc:language>{}{}{}
         <meta property="dcterms:modified">{}</meta>
         <meta property="rendition:layout">pre-paginated</meta>
         <meta name="fixed-layout" content="true"/>
@@ -136,12 +142,21 @@ pub fn create_opf_file(
     </guide>
 </package>"#,
             identifier,
-            title,
+            metadata.title,
             language,
+            if let Some(x) = &metadata.creator {
+                format!(r#"<dc:creator>{}</dc:creator>"#, x)
+            } else { "".to_string() },
+            if let Some(x) = &metadata.publisher {
+                format!(r#"<dc:publisher>{}</dc:publisher>"#, x)
+            } else { "".to_string() },
+            if let Some(x) = &metadata.date {
+                format!(r#"<dc:date>{}</dc:date>"#, x)
+            } else { "".to_string() },
             modified,
             max_width,
             max_height,
-            if is_rtl {
+            if metadata.is_rtl {
                 r#"<meta name="primary-writing-mode" content="horizontal-rl"/>"#
             } else { "" },
             images_files
@@ -158,7 +173,7 @@ pub fn create_opf_file(
                 ])
                 .collect::<Vec<_>>()
                 .join("\n        "),
-            if is_rtl {
+            if metadata.is_rtl {
                 r#" page-progression-direction="rtl""#
             } else { "" },
             images_files
@@ -168,7 +183,7 @@ pub fn create_opf_file(
                 .map(|(i,_)| format!(
                     r#"<itemref idref="part{}" properties="page-spread-{}"/>"#,
                     i+1,
-                    if i % 2 == if is_rtl {1} else {0} { "left" } else { "right" }
+                    if i % 2 == if metadata.is_rtl {1} else {0} { "left" } else { "right" }
                 ))
                 .collect::<Vec<_>>()
                 .join("\n        "),
@@ -272,4 +287,15 @@ pub fn zip_epub(dir: &str, out: &str) -> Result<(), Box<dyn std::error::Error>> 
         .output()?;
 
     Ok(())
+}
+
+pub fn get_metadata(file_path: &str) -> Result<Metadata, Box<dyn std::error::Error>> {
+    let doc = EpubDoc::new(file_path)?;
+    Ok(Metadata {
+        title: doc.mdata("title").unwrap(),
+        creator: doc.mdata("creator"),
+        publisher: doc.mdata("publisher"),
+        date: doc.mdata("date"),
+        is_rtl: doc.mdata("page-progression-direction").map(|x| x == "rtl").unwrap_or(false),
+    })
 }

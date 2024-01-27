@@ -8,16 +8,7 @@ tasks:
   test:
     cmds:
       - cargo build --release
-      - task -p test_relative_path test_absolute_path
-
-  test_relative_path:
-    cmds:
-      - ./target/release/img2epub test_title ./images test.epub RTL
+      - ./target/release/img2epub ./images test.epub
       - java -jar epubcheck/epubcheck.jar test.epub
+      - ./target/release/get_metadata test.epub
       - rm test.epub
-
-  test_absolute_path:
-    cmds:
-      - ./target/release/img2epub test_title images /tmp/test.epub RTL
-      - java -jar epubcheck/epubcheck.jar /tmp/test.epub
-      - rm /tmp/test.epub
