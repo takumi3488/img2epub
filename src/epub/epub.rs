@@ -266,13 +266,19 @@ pub fn zip_epub(dir: &str, out: &str) -> Result<(), Box<dyn std::error::Error>> 
     }
 
     let current_dir = env::current_dir()?;
-    let epub_dir = format!("{}/{}", current_dir.to_str().unwrap(), dir);
+    let epub_dir = if dir.starts_with("/") {
+        dir.to_string()
+    } else {
+        format!("{}/{}", current_dir.to_str().unwrap(), dir)
+    };
 
     let out_path = if out.starts_with("/") {
         out.to_string()
     } else {
-        format!("../{}", out)
+        format!("{}/{}", current_dir.to_str().unwrap(), out)
     };
+
+    println!("{} -> {}", epub_dir, out_path);
 
     Command::new("sh")
         .arg("-c")

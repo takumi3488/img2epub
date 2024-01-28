@@ -2,7 +2,6 @@
 name = "img2epub"
 version = "0.1.4"
 edition = "2021"
-license = "MIT"
 authors = ["Takumi Mori"]
 description = "Convert images to EPUB"
 include = ["README.md", "src/**/*"]
