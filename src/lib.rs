@@ -30,7 +30,7 @@ pub fn img2epub(
         panic!("metadata.json is not found");
     };
 
-    let epub_dir = format!("./epub-{}", Uuid::new_v4().to_string());
+    let epub_dir = format!("/tmp/epub-{}", Uuid::new_v4().to_string());
     initialize_directory(&epub_dir)?;
 
     // Sort image files by name
