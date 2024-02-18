@@ -6,6 +6,7 @@ authors = ["Takumi Mori"]
 description = "Convert images to EPUB"
 include = ["README.md", "src/**/*"]
 default-run = "img2epub"
+license = "MIT"
 
 [dependencies]
 chrono = "0.4.31"
