@@ -141,8 +141,9 @@ pub fn create_opf_file(
         <meta property="rendition:layout">pre-paginated</meta>
         <meta name="fixed-layout" content="true"/>
         <meta name="book-type" content="comic"/>
-        <meta property="rendition:orientation">portrait</meta>
-        <meta name="orientation-lock" content="portrait"/>
+        <meta property="rendition:orientation">auto</meta>
+        <meta property="rendition:spread">landscape</meta>
+        <meta name="orientation-lock" content="auto"/>
         <meta name="original-resolution" content="{}x{}"/>{}
     </metadata>
     <manifest>
@@ -154,7 +155,7 @@ pub fn create_opf_file(
     </manifest>
     <spine{}>
         <itemref idref="nav"/>
-        <itemref idref="part0"/>
+        <itemref idref="part0" properties="rendition:spread-none"/>
         {}
     </spine>
     <guide>

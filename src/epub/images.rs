@@ -6,6 +6,7 @@ use regex::Regex;
 pub struct Image {
     pub path: std::path::PathBuf,
     pub file_name: String,
+    pub ext: String,
     pub id: String,
     pub width: u32,
     pub height: u32,
@@ -13,14 +14,14 @@ pub struct Image {
 
 impl Image {
     pub fn relative_path(&self) -> String {
-        format!("images/{}", self.file_name)
+        format!("images/{}.jpg", self.file_name)
     }
 }
 
 pub fn sort_image_files(dir: &str) -> Vec<Image> {
     let target_files = glob(format!("{}/*", dir).as_str()).unwrap();
     let re =
-        Regex::new(format!(r"{}/(\D*|.*\D)(\d{{1,6}})\.(jpe?g|png|webp)$", dir.replace("./", "")).as_str())
+        Regex::new(format!(r"{}/(\D*|.*\D)(\d{{1,6}})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$", dir.replace("./", "")).as_str())
             .unwrap();
     let mut sorted_files = target_files
         .map(|x| x.unwrap())
@@ -51,7 +52,7 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
         .map(|(x, imgres)| Image {
             path: x.clone(),
             file_name: format!(
-                "{:04}.{}",
+                "{:06}",
                 re.captures(x.to_str().unwrap())
                     .unwrap()
                     .get(2)
@@ -59,12 +60,14 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
                     .as_str()
                     .parse::<u32>()
                     .unwrap(),
-                re.captures(x.to_str().unwrap())
-                    .unwrap()
-                    .get(3)
-                    .unwrap()
-                    .as_str()
             ),
+            ext: re
+                .captures(x.to_str().unwrap())
+                .unwrap()
+                .get(3)
+                .unwrap()
+                .as_str()
+                .to_lowercase(),
             id: format!(
                 "part{}",
                 re.captures(x.to_str().unwrap())

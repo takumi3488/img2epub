@@ -64,7 +64,7 @@ pub fn img2epub(
             file.clone(),
             max_width,
             max_height,
-            format!("{}/OEBPS/images/{}", epub_dir, file.file_name),
+            format!("{}/OEBPS/images/{}.jpg", epub_dir, file.file_name),
         );
     }
     padding_image_file(
