@@ -20,7 +20,7 @@ impl Image {
 pub fn sort_image_files(dir: &str) -> Vec<Image> {
     let target_files = glob(format!("{}/*", dir).as_str()).unwrap();
     let re =
-        Regex::new(format!(r"{}/(\D*|.*\D)(\d{{1,6}})\.(jpg|png|webp)$", dir.replace("./", "")).as_str())
+        Regex::new(format!(r"{}/(\D*|.*\D)(\d{{1,6}})\.(jpe?g|png|webp)$", dir.replace("./", "")).as_str())
             .unwrap();
     let mut sorted_files = target_files
         .map(|x| x.unwrap())
