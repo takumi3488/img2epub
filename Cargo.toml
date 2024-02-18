@@ -1,6 +1,6 @@
 [package]
 name = "img2epub"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 authors = ["Takumi Mori"]
 description = "Convert images to EPUB"
