@@ -12,3 +12,12 @@ tasks:
       - java -jar epubcheck/epubcheck.jar test.epub
       - ./target/release/get_metadata test.epub
       - rm test.epub
+      - cp -r ./images ./tmp-images
+      - rm ./tmp-images/metadata.json
+      - |
+        ./target/release/img2epub ./tmp-images test.epub \
+        -t "Test Title" -c "Test Author" -p "Test Publisher" \
+        --date "Test Date" -d "rtl"
+      - java -jar epubcheck/epubcheck.jar test.epub
+      - ./target/release/get_metadata test.epub
+      - rm -rf test.epub ./tmp-images

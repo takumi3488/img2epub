@@ -14,6 +14,26 @@ pub struct Metadata {
     pub is_rtl: bool,
 }
 
+impl Metadata {
+    pub fn override_with(&mut self, title: Option<String>, creator: Option<String>, publisher: Option<String>, date: Option<String>, is_rtl: Option<bool>) {
+        if let Some(x) = title {
+            self.title = x;
+        }
+        if let Some(x) = creator {
+            self.creator = Some(x);
+        }
+        if let Some(x) = publisher {
+            self.publisher = Some(x);
+        }
+        if let Some(x) = date {
+            self.date = Some(x);
+        }
+        if let Some(x) = is_rtl {
+            self.is_rtl = x;
+        }
+    }
+}
+
 pub fn rm_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Remove the directory if it exists
     if Path::new(dir).exists() {

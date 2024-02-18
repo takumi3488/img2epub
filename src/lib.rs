@@ -6,7 +6,7 @@ use chrono::Utc;
 pub use epub::epub::get_metadata;
 use epub::epub::{
     create_nav_file, create_opf_file, create_part_files, initialize_directory, rm_directory,
-    zip_epub,
+    zip_epub, Metadata,
 };
 use epub::images::{padding_image_file, sort_image_files};
 use serde_json::from_reader;
@@ -20,14 +20,31 @@ pub enum Direction {
 pub fn img2epub(
     image_dir: &str,
     out: &str,
+    title: Option<String>,
+    creator: Option<String>,
+    publisher: Option<String>,
+    date: Option<String>,
+    is_rtl: Option<bool>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Create metadata
     let json_path = format!("{}/metadata.json", image_dir);
-    let metadata = if Path::new(&json_path).exists() {
+    let metadata: Metadata = if Path::new(&json_path).exists() {
         let buf = BufReader::new(File::open(&json_path)?);
-        from_reader(buf).expect("metadata.json is invalid")
+        let mut data: Metadata = from_reader(buf).expect("metadata.json is invalid");
+        data.override_with(title, creator, publisher, date, is_rtl);
+        data
     } else {
-        panic!("metadata.json is not found");
+        if let Some(title) = &title {
+            Metadata {
+                title: title.clone(),
+                creator,
+                publisher,
+                date,
+                is_rtl: is_rtl.unwrap_or(false),
+            }
+        } else {
+            return Err("title is not specified".into());
+        }
     };
 
     let epub_dir = format!("/tmp/epub-{}", Uuid::new_v4().to_string());
@@ -67,9 +84,15 @@ pub fn img2epub(
         &sorted_files,
         max_width,
         max_height,
-        &metadata
+        &metadata,
     )?;
-    create_part_files(&epub_dir, &metadata.title, &sorted_files, max_width, max_height)?;
+    create_part_files(
+        &epub_dir,
+        &metadata.title,
+        &sorted_files,
+        max_width,
+        max_height,
+    )?;
 
     // Zip the directory
     zip_epub(&epub_dir, out)?;
