@@ -149,7 +149,7 @@ pub fn create_opf_file(
     <manifest>
         <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
         <item id="part0" href="part0.xhtml" media-type="application/xhtml+xml"/>
-        <item id="cover" href="images/cover.jpg" properties="cover-image" media-type="image/jpeg"/>
+        <item id="cover" href="images/cover.webp" properties="cover-image" media-type="image/webp"/>
         {}
         <item href="reset.css" id="reset.css" media-type="text/css"/>
     </manifest>
@@ -187,7 +187,7 @@ pub fn create_opf_file(
                 .flat_map(|(i,x)| vec![
                     format!(r#"<item id="part{}" href="part{}.xhtml" media-type="application/xhtml+xml"/>"#, i+1, i+1),
                     format!(
-                        r#"<item id="image-{}" href="{}" media-type="image/jpeg"/>"#,
+                        r#"<item id="image-{}" href="{}" media-type="image/webp"/>"#,
                         x.file_name,
                         x.relative_path()
                     )
@@ -241,7 +241,7 @@ pub fn create_part_files(
             max_width,
             max_height,
             format!(
-                r#"<img src="images/cover.jpg" alt="cover.jpg" style="height: {}px; left: 0; position: absolute; top: 0; width: {}px"/>"#,
+                r#"<img src="images/cover.webp" alt="cover.webp" style="height: {}px; left: 0; position: absolute; top: 0; width: {}px"/>"#,
                 max_height, max_width
             )
         ),

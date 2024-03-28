@@ -64,14 +64,14 @@ pub fn img2epub(
             file.clone(),
             max_width,
             max_height,
-            format!("{}/OEBPS/images/{}.jpg", epub_dir, file.file_name),
+            format!("{}/OEBPS/images/{}.webp", epub_dir, file.file_name),
         );
     }
     padding_image_file(
         sorted_files[0].clone(),
         max_width,
         max_height,
-        format!("{}/OEBPS/images/cover.jpg", epub_dir),
+        format!("{}/OEBPS/images/cover.webp", epub_dir),
     );
 
     // Create inner files of the epub

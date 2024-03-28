@@ -14,7 +14,7 @@ pub struct Image {
 
 impl Image {
     pub fn relative_path(&self) -> String {
-        format!("images/{}.jpg", self.file_name)
+        format!("images/{}.webp", self.file_name)
     }
 }
 
