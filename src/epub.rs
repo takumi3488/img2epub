@@ -1,2 +1,2 @@
-pub mod epub;
+pub mod converter;
 pub mod images;

@@ -3,8 +3,8 @@ mod epub;
 use std::{fs::File, io::BufReader, path::Path};
 
 use chrono::Utc;
-pub use epub::epub::get_metadata;
-use epub::epub::{
+pub use epub::converter::get_metadata;
+use epub::converter::{
     create_nav_file, create_opf_file, create_part_files, initialize_directory, rm_directory,
     zip_epub, Metadata,
 };
@@ -33,21 +33,19 @@ pub fn img2epub(
         let mut data: Metadata = from_reader(buf).expect("metadata.json is invalid");
         data.override_with(title, creator, publisher, date, is_rtl);
         data
-    } else {
-        if let Some(title) = &title {
-            Metadata {
-                title: title.clone(),
-                creator,
-                publisher,
-                date,
-                is_rtl: is_rtl.unwrap_or(false),
-            }
-        } else {
-            return Err("title is not specified".into());
+    } else if let Some(title) = &title {
+        Metadata {
+            title: title.clone(),
+            creator,
+            publisher,
+            date,
+            is_rtl: is_rtl.unwrap_or(false),
         }
+    } else {
+        return Err("title is not specified".into());
     };
 
-    let epub_dir = format!("/tmp/epub-{}", Uuid::new_v4().to_string());
+    let epub_dir = format!("/tmp/epub-{}", Uuid::new_v4());
     initialize_directory(&epub_dir)?;
 
     // Sort image files by name
@@ -78,7 +76,7 @@ pub fn img2epub(
     create_nav_file(&epub_dir, max_width, max_height)?;
     create_opf_file(
         &epub_dir,
-        &format!("urn:uuid:{}", Uuid::new_v4().to_string()),
+        &format!("urn:uuid:{}", Uuid::new_v4()),
         "ja-JP",
         Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string().as_str(),
         &sorted_files,

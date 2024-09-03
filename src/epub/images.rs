@@ -6,8 +6,6 @@ use regex::Regex;
 pub struct Image {
     pub path: std::path::PathBuf,
     pub file_name: String,
-    pub ext: String,
-    pub id: String,
     pub width: u32,
     pub height: u32,
 }
@@ -20,9 +18,14 @@ impl Image {
 
 pub fn sort_image_files(dir: &str) -> Vec<Image> {
     let target_files = glob(format!("{}/*", dir).as_str()).unwrap();
-    let re =
-        Regex::new(format!(r"{}/(\D*|.*\D)(\d{{1,6}})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$", dir.replace("./", "")).as_str())
-            .unwrap();
+    let re = Regex::new(
+        format!(
+            r"{}/(\D*|.*\D)(\d{{1,6}})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$",
+            dir.replace("./", "")
+        )
+        .as_str(),
+    )
+    .unwrap();
     let mut sorted_files = target_files
         .map(|x| x.unwrap())
         .filter(|x| re.is_match(x.to_str().unwrap()))
@@ -61,23 +64,6 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
                     .parse::<u32>()
                     .unwrap(),
             ),
-            ext: re
-                .captures(x.to_str().unwrap())
-                .unwrap()
-                .get(3)
-                .unwrap()
-                .as_str()
-                .to_lowercase(),
-            id: format!(
-                "part{}",
-                re.captures(x.to_str().unwrap())
-                    .unwrap()
-                    .get(2)
-                    .unwrap()
-                    .as_str()
-                    .parse::<u32>()
-                    .unwrap()
-            ),
             width: imgres.width(),
             height: imgres.height(),
         })
@@ -103,9 +89,9 @@ pub fn padding_image_file(
         image::ImageBuffer::new(max_width, max_height);
     for x in 0..max_width {
         for y in 0..max_height {
-            if x < padding_width.0 || x >= max_width - padding_width.1 {
-                imgbuf.put_pixel(x, y, image::Rgb([255, 255, 255]));
-            } else if y < padding_height.0 || y >= max_height - padding_height.1 {
+            if (x < padding_width.0 || x >= max_width - padding_width.1)
+                || (y < padding_height.0 || y >= max_height - padding_height.1)
+            {
                 imgbuf.put_pixel(x, y, image::Rgb([255, 255, 255]));
             } else {
                 let rgb = img.get_pixel(x - padding_width.0, y - padding_height.0).0;

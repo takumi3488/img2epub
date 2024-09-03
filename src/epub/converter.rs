@@ -1,9 +1,13 @@
 use super::images::Image;
-use std::{
-    env, fs::{create_dir, remove_dir_all, write}, path::Path, process::Command, result::Result
-};
 use epub::doc::EpubDoc;
 use serde::Deserialize;
+use std::{
+    env,
+    fs::{create_dir, remove_dir_all, write},
+    path::Path,
+    process::Command,
+    result::Result,
+};
 
 #[derive(Deserialize)]
 pub struct Metadata {
@@ -15,7 +19,14 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub fn override_with(&mut self, title: Option<String>, creator: Option<String>, publisher: Option<String>, date: Option<String>, is_rtl: Option<bool>) {
+    pub fn override_with(
+        &mut self,
+        title: Option<String>,
+        creator: Option<String>,
+        publisher: Option<String>,
+        date: Option<String>,
+        is_rtl: Option<bool>,
+    ) {
         if let Some(x) = title {
             self.title = x;
         }
@@ -122,10 +133,10 @@ pub fn create_opf_file(
     identifier: &str,
     language: &str,
     modified: &str,
-    images_files: &Vec<Image>,
+    images_files: &[Image],
     max_width: u32,
     max_height: u32,
-    metadata: &Metadata
+    metadata: &Metadata,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Create the content.opf file
     write(
@@ -217,7 +228,7 @@ pub fn create_opf_file(
 pub fn create_part_files(
     dir: &str,
     title: &str,
-    image_files: &Vec<Image>,
+    image_files: &[Image],
     max_width: u32,
     max_height: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -240,7 +251,7 @@ pub fn create_part_files(
             title,
             max_width,
             max_height,
-            format!(
+            format_args!(
                 r#"<img src="images/cover.webp" alt="cover.webp" style="height: {}px; left: 0; position: absolute; top: 0; width: {}px"/>"#,
                 max_height, max_width
             )
@@ -267,7 +278,7 @@ pub fn create_part_files(
                 title,
                 max_width,
                 max_height,
-                format!(
+                format_args!(
                     r#"<img src="{}" alt="{}" style="height: {}px; left: 0; position: absolute; top: 0; width: {}px"/>"#,
                     file.relative_path(),
                     file.file_name,
@@ -323,6 +334,9 @@ pub fn get_metadata(file_path: &str) -> Result<Metadata, Box<dyn std::error::Err
         creator: doc.mdata("creator"),
         publisher: doc.mdata("publisher"),
         date: doc.mdata("date"),
-        is_rtl: doc.mdata("page-progression-direction").map(|x| x == "rtl").unwrap_or(false),
+        is_rtl: doc
+            .mdata("page-progression-direction")
+            .map(|x| x == "rtl")
+            .unwrap_or(false),
     })
 }
