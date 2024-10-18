@@ -53,6 +53,9 @@ pub fn img2epub(
 
     // Get the maximum width and height of the images
     let sizes = sorted_files.iter().map(|x| (x.width, x.height));
+    if sizes.clone().count() == 0 {
+        return Err("No image files found".into());
+    }
     let max_width: u32 = sizes.clone().map(|s| s.0).max().unwrap();
     let max_height = sizes.clone().map(|s| s.1).max().unwrap();
 
