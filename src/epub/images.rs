@@ -17,15 +17,8 @@ impl Image {
 }
 
 pub fn sort_image_files(dir: &str) -> Vec<Image> {
-    let target_files = glob(format!("{}/*", dir).as_str()).unwrap();
-    let re = Regex::new(
-        format!(
-            r"{}/(\D*|.*\D)(\d{{1,6}})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$",
-            dir.replace("./", "")
-        )
-        .as_str(),
-    )
-    .unwrap();
+    let target_files = glob(format!("{}/**/*", dir).as_str()).unwrap();
+    let re = Regex::new(r"/(\D*|.*\D)(\d{1,6})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$").unwrap();
     let mut sorted_files = target_files
         .map(|x| x.unwrap())
         .filter(|x| re.is_match(x.to_str().unwrap()))
