@@ -1,5 +1,5 @@
 use glob::glob;
-use image::GenericImageView;
+use image::{GenericImageView, ImageReader};
 use regex::Regex;
 
 #[derive(Debug, Clone)]
@@ -44,7 +44,11 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
     });
     sorted_files
         .iter()
-        .map(|x| (x, image::open(x).unwrap()))
+        .map(|x| {
+            let mut reader = ImageReader::open(x).unwrap();
+            reader.no_limits();
+            (x, reader.decode().unwrap())
+        })
         .map(|(x, imgres)| Image {
             path: x.clone(),
             file_name: format!(
