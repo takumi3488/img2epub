@@ -44,10 +44,7 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
     });
     sorted_files
         .iter()
-        .map(|x| {
-            println!("Reading image: {:?}", x);
-            (x, image::open(x).unwrap())
-        })
+        .map(|x| (x, image::open(x).unwrap()))
         .map(|(x, imgres)| Image {
             path: x.clone(),
             file_name: format!(
