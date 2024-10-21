@@ -45,6 +45,7 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
     sorted_files
         .iter()
         .map(|x| {
+            println!("Reading image: {:?}", x);
             let mut reader = ImageReader::open(x).unwrap();
             reader.no_limits();
             (x, reader.decode().unwrap())
