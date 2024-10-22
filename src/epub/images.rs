@@ -1,3 +1,4 @@
+use anyhow::Result;
 use glob::glob;
 use image::GenericImageView;
 use regex::Regex;
@@ -16,9 +17,9 @@ impl Image {
     }
 }
 
-pub fn sort_image_files(dir: &str) -> Vec<Image> {
-    let target_files = glob(format!("{}/**/*", dir).as_str()).unwrap();
-    let re = Regex::new(r"/(\D*|.*\D)(\d{1,6})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$").unwrap();
+pub fn sort_image_files(dir: &str) -> Result<Vec<Image>> {
+    let target_files = glob(format!("{}/**/*", dir).as_str())?;
+    let re = Regex::new(r"/(\D*|.*\D)(\d{1,6})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$")?;
     let mut sorted_files = target_files
         .filter_map(|x| x.ok())
         .filter(|x| x.to_str().is_some_and(|x| re.is_match(x)))
@@ -42,25 +43,27 @@ pub fn sort_image_files(dir: &str) -> Vec<Image> {
             .unwrap();
         a.cmp(&b)
     });
-    sorted_files
+    Ok(sorted_files
         .iter()
-        .map(|x| (x, image::open(x).unwrap()))
-        .map(|(x, imgres)| Image {
-            path: x.clone(),
-            file_name: format!(
-                "{:06}",
-                re.captures(x.to_str().unwrap())
-                    .unwrap()
-                    .get(2)
-                    .unwrap()
-                    .as_str()
-                    .parse::<u32>()
-                    .unwrap(),
-            ),
-            width: imgres.width(),
-            height: imgres.height(),
+        .map(|x| match image::open(x.clone()) {
+            Ok(image) => Ok(Image {
+                path: x.clone(),
+                file_name: format!(
+                    "{:06}",
+                    re.captures(x.to_str().unwrap())
+                        .unwrap()
+                        .get(2)
+                        .unwrap()
+                        .as_str()
+                        .parse::<u32>()
+                        .unwrap(),
+                ),
+                width: image.width(),
+                height: image.height(),
+            }),
+            Err(e) => Err(e.into()),
         })
-        .collect::<Vec<_>>()
+        .collect::<Result<Vec<_>>>()?)
 }
 
 pub fn padding_image_file(

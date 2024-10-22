@@ -1,4 +1,5 @@
 use super::images::Image;
+use anyhow::Result;
 use epub::doc::EpubDoc;
 use serde::Deserialize;
 use std::{
@@ -6,7 +7,6 @@ use std::{
     fs::{create_dir, remove_dir_all, write},
     path::Path,
     process::Command,
-    result::Result,
 };
 
 #[derive(Deserialize)]
@@ -45,7 +45,7 @@ impl Metadata {
     }
 }
 
-pub fn rm_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn rm_directory(dir: &str) -> Result<()> {
     // Remove the directory if it exists
     if Path::new(dir).exists() {
         remove_dir_all(dir)?;
@@ -54,7 +54,7 @@ pub fn rm_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn initialize_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn initialize_directory(dir: &str) -> Result<()> {
     // Create the directory and subdirectories
     create_dir(dir)?;
     create_dir(format!("{}/OEBPS", dir))?;
@@ -78,11 +78,7 @@ pub fn initialize_directory(dir: &str) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-pub fn create_nav_file(
-    dir: &str,
-    width: u32,
-    height: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn create_nav_file(dir: &str, width: u32, height: u32) -> Result<()> {
     // Create the nav.xhtml file
     write(
         format!("{}/OEBPS/nav.xhtml", dir),
@@ -137,7 +133,7 @@ pub fn create_opf_file(
     max_width: u32,
     max_height: u32,
     metadata: &Metadata,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     // Create the content.opf file
     write(
         format!("{}/OEBPS/content.opf", dir),
@@ -231,7 +227,7 @@ pub fn create_part_files(
     image_files: &[Image],
     max_width: u32,
     max_height: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     // Create the part0.xhtml file
     write(
         format!("{}/OEBPS/part0.xhtml", dir),
@@ -292,7 +288,7 @@ pub fn create_part_files(
     Ok(())
 }
 
-pub fn zip_epub(dir: &str, out: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn zip_epub(dir: &str, out: &str) -> Result<()> {
     if Path::new(out).exists() {
         std::fs::remove_file(out)?;
     }

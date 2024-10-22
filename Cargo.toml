@@ -9,6 +9,7 @@ default-run = "img2epub"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0.90"
 chrono = "0.4.38"
 clap = { version = "4.5.20", features = ["derive"] }
 epub = "2.1.2"

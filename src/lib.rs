@@ -2,6 +2,7 @@ mod epub;
 
 use std::{fs::File, io::BufReader, path::Path};
 
+use anyhow::{bail, Result};
 use chrono::Utc;
 pub use epub::converter::get_metadata;
 use epub::converter::{
@@ -25,7 +26,7 @@ pub fn img2epub(
     publisher: Option<String>,
     date: Option<String>,
     is_rtl: Option<bool>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     // Create metadata
     let json_path = format!("{}/metadata.json", image_dir);
     let metadata: Metadata = if Path::new(&json_path).exists() {
@@ -42,19 +43,19 @@ pub fn img2epub(
             is_rtl: is_rtl.unwrap_or(false),
         }
     } else {
-        return Err("title is not specified".into());
+        bail!("title is required");
     };
 
     let epub_dir = format!("/tmp/epub-{}", Uuid::new_v4());
     initialize_directory(&epub_dir)?;
 
     // Sort image files by name
-    let sorted_files = sort_image_files(image_dir);
+    let sorted_files = sort_image_files(image_dir)?;
 
     // Get the maximum width and height of the images
     let sizes = sorted_files.iter().map(|x| (x.width, x.height));
     if sizes.clone().count() == 0 {
-        return Err("No image files found".into());
+        bail!("No image files found");
     }
     let max_width: u32 = sizes.clone().map(|s| s.0).max().unwrap();
     let max_height = sizes.clone().map(|s| s.1).max().unwrap();
