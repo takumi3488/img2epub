@@ -1,5 +1,6 @@
 mod epub;
 
+use std::path::PathBuf;
 use std::{fs::File, io::BufReader, path::Path};
 
 use anyhow::{bail, Result};
@@ -26,6 +27,7 @@ pub fn img2epub(
     publisher: Option<String>,
     date: Option<String>,
     is_rtl: Option<bool>,
+    blank: Option<bool>,
 ) -> Result<()> {
     // Create metadata
     let json_path = format!("{}/metadata.json", image_dir);
@@ -41,6 +43,7 @@ pub fn img2epub(
             publisher,
             date,
             is_rtl: is_rtl.unwrap_or(false),
+            blank,
         }
     } else {
         bail!("title is required");
@@ -50,7 +53,7 @@ pub fn img2epub(
     initialize_directory(&epub_dir)?;
 
     // Sort image files by name
-    let sorted_files = sort_image_files(image_dir)?;
+    let mut sorted_files = sort_image_files(image_dir)?;
 
     // Get the maximum width and height of the images
     let sizes = sorted_files.iter().map(|x| (x.width, x.height));
@@ -59,6 +62,28 @@ pub fn img2epub(
     }
     let max_width: u32 = sizes.clone().map(|s| s.0).max().unwrap();
     let max_height = sizes.clone().map(|s| s.1).max().unwrap();
+
+    // Create blank page
+    if metadata.blank.is_some_and(|x| x) {
+        let blank_page: &str = &format!("{}/OEBPS/images/blank.webp", epub_dir);
+        let mut imgbuf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
+            image::ImageBuffer::new(max_width, max_height);
+        for x in 0..max_width {
+            for y in 0..max_height {
+                imgbuf.put_pixel(x, y, image::Rgb([255, 255, 255]));
+            }
+        }
+        imgbuf.save(blank_page).unwrap();
+        sorted_files.insert(
+            1,
+            epub::images::Image {
+                path: PathBuf::from(blank_page),
+                file_name: "blank".to_string(),
+                width: max_width,
+                height: max_height,
+            },
+        );
+    }
 
     // Copy image files to the epub directory
     for file in sorted_files.iter() {

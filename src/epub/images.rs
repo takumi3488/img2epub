@@ -1,3 +1,5 @@
+use std::{thread::sleep, time::Duration};
+
 use anyhow::Result;
 use glob::glob;
 use image::GenericImageView;
@@ -43,7 +45,7 @@ pub fn sort_image_files(dir: &str) -> Result<Vec<Image>> {
             .unwrap();
         a.cmp(&b)
     });
-    Ok(sorted_files
+    sorted_files
         .iter()
         .map(|x| match image::open(x.clone()) {
             Ok(image) => Ok(Image {
@@ -63,7 +65,7 @@ pub fn sort_image_files(dir: &str) -> Result<Vec<Image>> {
             }),
             Err(e) => Err(e.into()),
         })
-        .collect::<Result<Vec<_>>>()?)
+        .collect::<Result<Vec<_>>>()
 }
 
 pub fn padding_image_file(
@@ -96,7 +98,7 @@ pub fn padding_image_file(
         }
     }
     image::save_buffer(
-        out_path,
+        &out_path,
         &imgbuf,
         max_width,
         max_height,
@@ -105,5 +107,9 @@ pub fn padding_image_file(
     .unwrap();
     padding_image_file.width = max_width;
     padding_image_file.height = max_height;
+    if out_path.contains("blank") {
+        println!("{}", out_path);
+        sleep(Duration::from_secs(200));
+    }
     padding_image_file
 }

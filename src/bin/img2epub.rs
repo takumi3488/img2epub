@@ -32,14 +32,18 @@ struct Args {
     #[clap(long)]
     date: Option<String>,
 
-    /// Direction of the book
-    /// If not specified, the direction is read from metadata.json
-    /// The value is either "rtl" or "ltr"
-    /// If the value is not valid nor specified, the direction is set to "ltr"
-    /// If the value is "rtl", the direction is right-to-left
-    /// If the value is "ltr", the direction is left-to-right
+    /// Direction of the book.
+    /// If not specified, the direction is read from metadata.json.
+    /// The value is either "rtl" or "ltr".
+    /// If the value is not valid nor specified, the direction is set to "ltr".
+    /// If the value is "rtl", the direction is right-to-left.
+    /// If the value is "ltr", the direction is left-to-right.
     #[clap(short, long)]
     direction: Option<String>,
+
+    /// If set, add a blank page to the beginning of the book
+    #[clap(short, long)]
+    blank: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -58,6 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.publisher,
         args.date,
         args.direction.map(|x| x == "rtl"),
+        args.blank.then_some(true),
     )?;
 
     Ok(())

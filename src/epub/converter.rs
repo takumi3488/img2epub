@@ -16,6 +16,7 @@ pub struct Metadata {
     pub publisher: Option<String>,
     pub date: Option<String>,
     pub is_rtl: bool,
+    pub blank: Option<bool>,
 }
 
 impl Metadata {
@@ -334,5 +335,6 @@ pub fn get_metadata(file_path: &str) -> Result<Metadata, Box<dyn std::error::Err
             .mdata("page-progression-direction")
             .map(|x| x == "rtl")
             .unwrap_or(false),
+        blank: doc.mdata("blank").map(|x| x == "true"),
     })
 }
