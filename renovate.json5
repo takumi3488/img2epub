@@ -1,0 +1,16 @@
+{
+  extends: [
+    "config:base"
+  ],
+  dependencyDashboard: false,
+  packageRules: [
+    {
+      matchUpdateTypes: [
+        "minor",
+        "patch"
+      ],
+      groupName: "all minor and patch updates",
+      groupSlug: "all-minor-and-patch-updates",
+    }
+  ]
+}
