@@ -327,14 +327,14 @@ pub fn zip_epub(dir: &str, out: &str) -> Result<()> {
 pub fn get_metadata(file_path: &str) -> Result<Metadata, Box<dyn std::error::Error>> {
     let doc = EpubDoc::new(file_path)?;
     Ok(Metadata {
-        title: doc.mdata("title").unwrap(),
-        creator: doc.mdata("creator"),
-        publisher: doc.mdata("publisher"),
-        date: doc.mdata("date"),
+        title: doc.mdata("title").unwrap().value.clone(),
+        creator: doc.mdata("creator").map(|x| x.value.clone()),
+        publisher: doc.mdata("publisher").map(|x| x.value.clone()),
+        date: doc.mdata("date").map(|x| x.value.clone()),
         is_rtl: doc
             .mdata("page-progression-direction")
-            .map(|x| x == "rtl")
+            .map(|x| x.value == "rtl")
             .unwrap_or(false),
-        blank: doc.mdata("blank").map(|x| x == "true"),
+        blank: doc.mdata("blank").map(|x| x.value == "true"),
     })
 }
