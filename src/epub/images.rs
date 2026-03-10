@@ -1,6 +1,6 @@
 use std::{thread::sleep, time::Duration};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use glob::glob;
 use image::GenericImageView;
 use regex::Regex;
@@ -19,70 +19,68 @@ impl Image {
     }
 }
 
+fn extract_number(re: &Regex, path: &std::path::Path) -> Result<u32> {
+    let path_str = path
+        .to_str()
+        .ok_or_else(|| anyhow!("invalid path (not valid UTF-8)"))?;
+    let num = re
+        .captures(path_str)
+        .and_then(|c| c.get(2))
+        .ok_or_else(|| anyhow!("invalid file name: {}", path.display()))?
+        .as_str()
+        .parse::<u32>()
+        .map_err(|e| anyhow!("failed to parse number in file name: {e}"))?;
+    Ok(num)
+}
+
 pub fn sort_image_files(dir: &str) -> Result<Vec<Image>> {
-    let target_files = glob(format!("{}/**/*", dir).as_str())?;
+    let target_files = glob(&format!("{dir}/**/*"))?;
     let re = Regex::new(r"/(\D*|.*\D)(\d{1,6})\.(jpe?g|JPE?G|png|PNG|webp|WEBP)$")?;
     let mut sorted_files = target_files
-        .filter_map(|x| x.ok())
+        .filter_map(Result::ok)
         .filter(|x| x.to_str().is_some_and(|x| re.is_match(x)))
         .collect::<Vec<_>>();
-    sorted_files.sort_by(|a, b| {
-        let a = re
-            .captures(a.to_str().unwrap())
-            .expect("invalid file name")
-            .get(2)
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
-        let b = re
-            .captures(b.to_str().unwrap())
-            .expect("invalid file name")
-            .get(2)
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
-        a.cmp(&b)
-    });
+
+    // Extract numbers for sorting, propagating errors
+    let mut numbered: Vec<(u32, std::path::PathBuf)> = sorted_files
+        .iter()
+        .map(|x| extract_number(&re, x).map(|n| (n, x.clone())))
+        .collect::<Result<Vec<_>>>()?;
+    numbered.sort_by_key(|(n, _)| *n);
+    sorted_files = numbered.into_iter().map(|(_, p)| p).collect();
+
     sorted_files
         .iter()
         .map(|x| match image::open(x.clone()) {
-            Ok(image) => Ok(Image {
-                path: x.clone(),
-                file_name: format!(
-                    "{:06}",
-                    re.captures(x.to_str().unwrap())
-                        .unwrap()
-                        .get(2)
-                        .unwrap()
-                        .as_str()
-                        .parse::<u32>()
-                        .unwrap(),
-                ),
-                width: image.width(),
-                height: image.height(),
-            }),
+            Ok(image) => {
+                let num = extract_number(&re, x)?;
+                Ok(Image {
+                    path: x.clone(),
+                    file_name: format!("{num:06}"),
+                    width: image.width(),
+                    height: image.height(),
+                })
+            }
             Err(e) => Err(e.into()),
         })
         .collect::<Result<Vec<_>>>()
 }
 
 pub fn padding_image_file(
-    image_file: Image,
+    image_file: &Image,
     max_width: u32,
     max_height: u32,
-    out_path: String,
-) -> Image {
-    let mut padding_image_file = image_file.clone();
+    out_path: &str,
+) -> Result<Image> {
+    let mut padded = image_file.clone();
 
-    let width = padding_image_file.width;
-    let height = padding_image_file.height;
+    let width = padded.width;
+    let height = padded.height;
     let width_diff = max_width - width;
     let height_diff = max_height - height;
     let padding_width = (width_diff / 2, width_diff - width_diff / 2);
     let padding_height = (height_diff / 2, height_diff - height_diff / 2);
-    let img = image::open(padding_image_file.path.clone()).unwrap();
+    let img = image::open(padded.path.clone())?;
     let mut imgbuf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
         image::ImageBuffer::new(max_width, max_height);
     for x in 0..max_width {
@@ -98,18 +96,17 @@ pub fn padding_image_file(
         }
     }
     image::save_buffer(
-        &out_path,
+        out_path,
         &imgbuf,
         max_width,
         max_height,
         image::ColorType::Rgb8,
-    )
-    .unwrap();
-    padding_image_file.width = max_width;
-    padding_image_file.height = max_height;
+    )?;
+    padded.width = max_width;
+    padded.height = max_height;
     if out_path.contains("blank") {
-        println!("{}", out_path);
+        println!("{out_path}");
         sleep(Duration::from_secs(200));
     }
-    padding_image_file
+    Ok(padded)
 }
