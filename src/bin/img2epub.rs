@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use img2epub::img2epub;
+use img2epub::{img2epub, EpubOptions};
 
 #[derive(Parser, Debug)]
 #[command(version)]
@@ -54,16 +54,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => format!("{}.epub", args.directory),
     };
 
-    img2epub(
-        &args.directory,
-        &out,
-        args.title,
-        args.creator,
-        args.publisher,
-        args.date,
-        args.direction.map(|x| x == "rtl"),
-        args.blank.then_some(true),
-    )?;
+    img2epub(EpubOptions {
+        image_dir: args.directory,
+        out,
+        title: args.title,
+        creator: args.creator,
+        publisher: args.publisher,
+        publication_date: args.date,
+        is_rtl: args.direction.map(|x| x == "rtl"),
+        blank: args.blank.then_some(true),
+    })?;
 
     Ok(())
 }

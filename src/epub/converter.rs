@@ -1,5 +1,5 @@
 use super::images::Image;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use epub::doc::EpubDoc;
 use serde::Deserialize;
 use std::{
@@ -46,6 +46,9 @@ impl Metadata {
     }
 }
 
+/// # Errors
+///
+/// Returns an error if the directory or its contents cannot be removed.
 pub fn rm_directory(dir: &str) -> Result<()> {
     // Remove the directory if it exists
     if Path::new(dir).exists() {
@@ -55,19 +58,22 @@ pub fn rm_directory(dir: &str) -> Result<()> {
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if any directory or file creation fails.
 pub fn initialize_directory(dir: &str) -> Result<()> {
     // Create the directory and subdirectories
     create_dir(dir)?;
-    create_dir(format!("{}/OEBPS", dir))?;
-    create_dir(format!("{}/OEBPS/images", dir))?;
-    create_dir(format!("{}/META-INF", dir))?;
+    create_dir(format!("{dir}/OEBPS"))?;
+    create_dir(format!("{dir}/OEBPS/images"))?;
+    create_dir(format!("{dir}/META-INF"))?;
 
     // Create the mimetype file
-    write(format!("{}/mimetype", dir), "application/epub+zip")?;
+    write(format!("{dir}/mimetype"), "application/epub+zip")?;
 
     // Create the container.xml file
     write(
-        format!("{}/META-INF/container.xml", dir),
+        format!("{dir}/META-INF/container.xml"),
         r#"<?xml version="1.0" encoding="UTF-8" ?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
     <rootfiles>
@@ -79,17 +85,20 @@ pub fn initialize_directory(dir: &str) -> Result<()> {
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if writing the nav or CSS files fails.
 pub fn create_nav_file(dir: &str, width: u32, height: u32) -> Result<()> {
     // Create the nav.xhtml file
     write(
-        format!("{}/OEBPS/nav.xhtml", dir),
+        format!("{dir}/OEBPS/nav.xhtml"),
         format!(
-            r##"<?xml version="1.0" encoding="UTF-8" ?>
+            r#"<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
     <head>
         <title>nav</title>
-        <meta name="viewport" content="width={}, height={}"/>
+        <meta name="viewport" content="width={width}, height={height}"/>
     </head>
     <body>
         <nav epub:type="toc" hidden="">
@@ -101,15 +110,14 @@ pub fn create_nav_file(dir: &str, width: u32, height: u32) -> Result<()> {
             </ol>
         </nav>
     </body>
-</html>"##,
-            width, height
+</html>"#,
         ),
     )?;
 
     // Create the reset.css file
     write(
-        format!("{}/OEBPS/reset.css", dir),
-        r#"html {color: #000; background: #FFF;}
+        format!("{dir}/OEBPS/reset.css"),
+        r"html {color: #000; background: #FFF;}
 body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,th,td {margin: 0; padding: 0;}
 table {border-collapse: collapse; border-spacing: 0;}
 fieldset,img {border: 0;}
@@ -119,109 +127,136 @@ caption,th {text-align: left;}
 h1,h2,h3,h4,h5,h6 {font-size: 100%; font-weight: normal;}
 sup {vertical-align: text-top;}
 sub {vertical-align: text-bottom;}
-a.app-amzn-magnify {display: block; width: 100%; height: 100%;}"#,
+a.app-amzn-magnify {display: block; width: 100%; height: 100%;}",
     )?;
 
     Ok(())
 }
 
+pub struct OpfParams<'a> {
+    pub identifier: &'a str,
+    pub language: &'a str,
+    pub modified: &'a str,
+    pub max_width: u32,
+    pub max_height: u32,
+}
+
+/// # Errors
+///
+/// Returns an error if writing the OPF file fails.
 pub fn create_opf_file(
     dir: &str,
-    identifier: &str,
-    language: &str,
-    modified: &str,
+    params: &OpfParams<'_>,
     images_files: &[Image],
-    max_width: u32,
-    max_height: u32,
     metadata: &Metadata,
 ) -> Result<()> {
+    let OpfParams {
+        identifier,
+        language,
+        modified,
+        max_width,
+        max_height,
+    } = params;
     // Create the content.opf file
+    let creator_tag = metadata
+        .creator
+        .as_ref()
+        .map_or(String::new(), |x| format!(r"<dc:creator>{x}</dc:creator>"));
+    let publisher_tag = metadata
+        .publisher
+        .as_ref()
+        .map_or(String::new(), |x| format!(r"<dc:publisher>{x}</dc:publisher>"));
+    let date_tag = metadata
+        .date
+        .as_ref()
+        .map_or(String::new(), |x| format!(r"<dc:date>{x}</dc:date>"));
+    let rtl_meta = if metadata.is_rtl {
+        r#"<meta name="primary-writing-mode" content="horizontal-rl"/>"#
+    } else {
+        ""
+    };
+    let manifest_items = images_files
+        .iter()
+        .skip(1)
+        .enumerate()
+        .flat_map(|(i, x)| {
+            let n = i + 1;
+            vec![
+                format!(r#"<item id="part{n}" href="part{n}.xhtml" media-type="application/xhtml+xml"/>"#),
+                format!(
+                    r#"<item id="image-{}" href="{}" media-type="image/webp"/>"#,
+                    x.file_name,
+                    x.relative_path()
+                ),
+            ]
+        })
+        .collect::<Vec<_>>()
+        .join("\n        ");
+    let spine_direction = if metadata.is_rtl {
+        r#" page-progression-direction="rtl""#
+    } else {
+        ""
+    };
+    let spine_items = images_files
+        .iter()
+        .skip(1)
+        .enumerate()
+        .map(|(i, _)| {
+            let n = i + 1;
+            let spread = if i % 2 == usize::from(metadata.is_rtl) {
+                "left"
+            } else {
+                "right"
+            };
+            format!(r#"<itemref idref="part{n}" properties="page-spread-{spread}"/>"#)
+        })
+        .collect::<Vec<_>>()
+        .join("\n        ");
+
     write(
-        format!("{}/OEBPS/content.opf", dir),
+        format!("{dir}/OEBPS/content.opf"),
         format!(
             r#"<?xml version="1.0" encoding="UTF-8" ?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
     <metadata xmlns:opf="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/">
-        <dc:identifier id="pub-id">{}</dc:identifier>
+        <dc:identifier id="pub-id">{identifier}</dc:identifier>
         <dc:title>{}</dc:title>
-        <dc:language>{}</dc:language>{}{}{}
-        <meta property="dcterms:modified">{}</meta>
+        <dc:language>{language}</dc:language>{creator_tag}{publisher_tag}{date_tag}
+        <meta property="dcterms:modified">{modified}</meta>
         <meta property="rendition:layout">pre-paginated</meta>
         <meta name="fixed-layout" content="true"/>
         <meta name="book-type" content="comic"/>
         <meta property="rendition:orientation">auto</meta>
         <meta property="rendition:spread">landscape</meta>
         <meta name="orientation-lock" content="auto"/>
-        <meta name="original-resolution" content="{}x{}"/>{}
+        <meta name="original-resolution" content="{max_width}x{max_height}"/>{rtl_meta}
     </metadata>
     <manifest>
         <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
         <item id="part0" href="part0.xhtml" media-type="application/xhtml+xml"/>
         <item id="cover" href="images/cover.webp" properties="cover-image" media-type="image/webp"/>
-        {}
+        {manifest_items}
         <item href="reset.css" id="reset.css" media-type="text/css"/>
     </manifest>
-    <spine{}>
+    <spine{spine_direction}>
         <itemref idref="nav"/>
         <itemref idref="part0" properties="rendition:spread-none"/>
-        {}
+        {spine_items}
     </spine>
     <guide>
         <reference type="cover" title="Cover" href="part0.xhtml"/>
     </guide>
 </package>"#,
-            identifier,
             metadata.title,
-            language,
-            if let Some(x) = &metadata.creator {
-                format!(r#"<dc:creator>{}</dc:creator>"#, x)
-            } else { "".to_string() },
-            if let Some(x) = &metadata.publisher {
-                format!(r#"<dc:publisher>{}</dc:publisher>"#, x)
-            } else { "".to_string() },
-            if let Some(x) = &metadata.date {
-                format!(r#"<dc:date>{}</dc:date>"#, x)
-            } else { "".to_string() },
-            modified,
-            max_width,
-            max_height,
-            if metadata.is_rtl {
-                r#"<meta name="primary-writing-mode" content="horizontal-rl"/>"#
-            } else { "" },
-            images_files
-                .iter()
-                .skip(1)
-                .enumerate()
-                .flat_map(|(i,x)| vec![
-                    format!(r#"<item id="part{}" href="part{}.xhtml" media-type="application/xhtml+xml"/>"#, i+1, i+1),
-                    format!(
-                        r#"<item id="image-{}" href="{}" media-type="image/webp"/>"#,
-                        x.file_name,
-                        x.relative_path()
-                    )
-                ])
-                .collect::<Vec<_>>()
-                .join("\n        "),
-            if metadata.is_rtl {
-                r#" page-progression-direction="rtl""#
-            } else { "" },
-            images_files
-                .iter()
-                .skip(1)
-                .enumerate()
-                .map(|(i,_)| format!(
-                    r#"<itemref idref="part{}" properties="page-spread-{}"/>"#,
-                    i+1,
-                    if i % 2 == if metadata.is_rtl {1} else {0} { "left" } else { "right" }
-                ))
-                .collect::<Vec<_>>()
-                .join("\n        "),
         ),
     )?;
 
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if writing any part file fails.
 pub fn create_part_files(
     dir: &str,
     title: &str,
@@ -231,56 +266,48 @@ pub fn create_part_files(
 ) -> Result<()> {
     // Create the part0.xhtml file
     write(
-        format!("{}/OEBPS/part0.xhtml", dir),
+        format!("{dir}/OEBPS/part0.xhtml"),
         format!(
             r#"<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <title>{}</title>
-        <meta name="viewport" content="width={}, height={}"/>
+        <title>{title}</title>
+        <meta name="viewport" content="width={max_width}, height={max_height}"/>
         <link rel="stylesheet" type="text/css" href="reset.css"/>
     </head>
     <body style="font-size: 16px; height: 100%; text-align: center; width: 100%">
         {}
     </body>
 </html>"#,
-            title,
-            max_width,
-            max_height,
             format_args!(
-                r#"<img src="images/cover.webp" alt="cover.webp" style="height: {}px; left: 0; position: absolute; top: 0; width: {}px"/>"#,
-                max_height, max_width
+                r#"<img src="images/cover.webp" alt="cover.webp" style="height: {max_height}px; left: 0; position: absolute; top: 0; width: {max_width}px"/>"#,
             )
         ),
     )?;
 
     // Create the partX.xhtml files
     for (i, file) in image_files.iter().skip(1).enumerate() {
+        let n = i + 1;
         write(
-            format!("{}/OEBPS/part{}.xhtml", dir, i + 1),
+            format!("{dir}/OEBPS/part{n}.xhtml"),
             format!(
                 r#"<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <title>{}</title>
-        <meta name="viewport" content="width={}, height={}"/>
+        <title>{title}</title>
+        <meta name="viewport" content="width={max_width}, height={max_height}"/>
         <link rel="stylesheet" type="text/css" href="reset.css"/>
     </head>
     <body>
         {}
     </body>
 </html>"#,
-                title,
-                max_width,
-                max_height,
                 format_args!(
-                    r#"<img src="{}" alt="{}" style="height: {}px; left: 0; position: absolute; top: 0; width: {}px"/>"#,
+                    r#"<img src="{}" alt="{}" style="height: {max_height}px; left: 0; position: absolute; top: 0; width: {max_width}px"/>"#,
                     file.relative_path(),
                     file.file_name,
-                    max_height,
-                    max_width
                 )
             ),
         )?;
@@ -289,52 +316,76 @@ pub fn create_part_files(
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if zipping the directory or creating the output file fails.
 pub fn zip_epub(dir: &str, out: &str) -> Result<()> {
     if Path::new(out).exists() {
         std::fs::remove_file(out)?;
     }
 
     let current_dir = env::current_dir()?;
-    let epub_dir = if dir.starts_with("/") {
+    let epub_dir = if dir.starts_with('/') {
         dir.to_string()
     } else {
-        format!("{}/{}", current_dir.to_str().unwrap(), dir)
+        format!(
+            "{}/{}",
+            current_dir
+                .to_str()
+                .ok_or_else(|| anyhow!("current dir is not valid UTF-8"))?,
+            dir
+        )
     };
 
-    let out_path = if out.starts_with("/") {
+    let out_path = if out.starts_with('/') {
         out.to_string()
     } else {
-        format!("{}/{}", current_dir.to_str().unwrap(), out)
+        format!(
+            "{}/{}",
+            current_dir
+                .to_str()
+                .ok_or_else(|| anyhow!("current dir is not valid UTF-8"))?,
+            out
+        )
     };
 
-    println!("{} -> {}", epub_dir, out_path);
+    println!("{epub_dir} -> {out_path}");
 
     Command::new("sh")
         .arg("-c")
-        .arg(format!("cd {} && zip -X0 {} mimetype", epub_dir, out_path))
+        .arg(format!("cd {epub_dir} && zip -X0 {out_path} mimetype"))
         .output()?;
     Command::new("sh")
         .arg("-c")
         .arg(format!(
-            "cd {} && zip -r9 {} * -x mimetype -x .*",
-            epub_dir, out_path
+            "cd {epub_dir} && zip -r9 {out_path} * -x mimetype -x .*"
         ))
         .output()?;
 
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if the EPUB file cannot be opened or parsed.
+///
+/// # Panics
+///
+/// Panics if the title metadata entry is missing from the EPUB.
 pub fn get_metadata(file_path: &str) -> Result<Metadata, Box<dyn std::error::Error>> {
     let doc = EpubDoc::new(file_path)?;
     Ok(Metadata {
-        title: doc.mdata("title").unwrap().value.clone(),
+        title: doc
+            .mdata("title")
+            .ok_or_else(|| anyhow!("missing title in EPUB metadata"))?
+            .value
+            .clone(),
         creator: doc.mdata("creator").map(|x| x.value.clone()),
         publisher: doc.mdata("publisher").map(|x| x.value.clone()),
         date: doc.mdata("date").map(|x| x.value.clone()),
         is_rtl: doc
             .mdata("page-progression-direction")
-            .map(|x| x.value == "rtl")
-            .unwrap_or(false),
+            .is_some_and(|x| x.value == "rtl"),
         blank: doc.mdata("blank").map(|x| x.value == "true"),
     })
 }

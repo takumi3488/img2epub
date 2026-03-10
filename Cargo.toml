@@ -1,12 +1,12 @@
 [package]
+authors = ["Takumi Mori"]
+default-run = "img2epub"
+description = "Convert images to EPUB"
+edition = "2024"
+include = ["README.md", "src/**/*"]
+license = "MIT"
 name = "img2epub"
 version = "0.1.19"
-edition = "2024"
-authors = ["Takumi Mori"]
-description = "Convert images to EPUB"
-include = ["README.md", "src/**/*"]
-default-run = "img2epub"
-license = "MIT"
 
 [dependencies]
 anyhow = "1.0.95"
@@ -19,3 +19,10 @@ regex = "1.11.1"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
 uuid = { version = "1.13.1", features = ["v4", "fast-rng"] }
+
+[lints.clippy]
+allow_attributes = "deny"
+dbg_macro = "deny"
+expect_used = "deny"
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"

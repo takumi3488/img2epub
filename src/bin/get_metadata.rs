@@ -13,12 +13,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let metadata = get_metadata(&args.epub)?;
     println!("title: {}", metadata.title);
-    println!("creator: {}", metadata.creator.unwrap_or("".to_string()));
-    println!(
-        "publisher: {}",
-        metadata.publisher.unwrap_or("".to_string())
-    );
-    println!("date: {}", metadata.date.unwrap_or("".to_string()));
+    println!("creator: {}", metadata.creator.unwrap_or_default());
+    println!("publisher: {}", metadata.publisher.unwrap_or_default());
+    println!("date: {}", metadata.date.unwrap_or_default());
 
     Ok(())
 }
