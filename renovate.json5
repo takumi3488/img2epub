@@ -42,16 +42,6 @@
         "github-actions"
       ],
       minimumReleaseAge: "7 days"
-    },
-    {
-      // Do not let files distributed by Terraform be updated on the repository side
-      // (to avoid fighting over the source of truth). ignorePaths is non-mergeable
-      // and would override the preset's exclusions, so disable via packageRules instead.
-      matchFileNames: [
-        ".github/workflows/cruise.yml",
-        "cruise.yaml",
-      ],
-      enabled: false,
     }
   ]
 }
